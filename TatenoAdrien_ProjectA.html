@@ -1,0 +1,93 @@
+<html>
+<head>
+	<script src="vendor/stats.min.js"></script>
+	<script src="utilities.js" type="text/javascript"></script>
+
+	<!-- PHYSICS PROGRAM -->
+	<script id="phys-vs" type="x-shader/x-fragment">
+
+attribute vec2 a_rectangle;
+
+void main() {
+	gl_Position = vec4(a_rectangle, 0.0, 1.0);
+}
+
+	</script>
+	<script id="phys-fs" type="x-shader/x-vertex">
+
+precision mediump float;
+
+uniform sampler2D u_state;
+
+uniform vec2 u_viewport;
+
+vec4 texel(vec2 position) {
+	return texture2D(u_state, position / u_viewport);
+}
+
+void main() {
+	int slot = int(mod(gl_FragCoord.x, 2.0));
+}
+
+	</script>
+
+	<!-- CALCULATION PROGRAM -->
+	<script id="calc-vs" type="x-shader/x-fragment">
+
+attribute vec2 a_rectangle;
+
+void main() {
+	gl_Position = vec4(a_rectangle, 0.0, 1.0);
+}
+
+	</script>
+	<script id="calc-fs" type="x-shader/x-vertex">
+
+precision mediump float;
+
+uniform sampler2D u_dot;
+uniform sampler2D u_state;
+
+uniform vec2 u_viewport;
+
+uniform float u_dt;
+
+void main() {
+	vec2 texcoord = gl_FragCoord.xy / u_viewport;
+	gl_FragColor = texture2D(u_state, texcoord) + u_dt * texture2D(u_dot, texcoord);
+}
+
+	</script>
+
+	<!-- DRAWING PROGRAM -->
+	<script id="draw-vs" type="x-shader/x-fragment">
+
+attribute vec2 a_reference;
+
+uniform sampler2D u_state;
+
+void main() {
+	vec4 position = texture2D(u_state, a_reference);
+	gl_Position = position;
+	gl_PointSize = 2.0;
+}
+
+	</script>
+	<script id="draw-fs" type="x-shader/x-vertex">
+
+void main() {
+	gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);	
+}
+
+	</script>
+
+	<script src="main.js"></script>
+</head>
+<body onload="main()">
+	<canvas id="webgl" style="position: absolute; top: 0; left: 0; width: 800px; height: 600px;">
+		Your browser does not support HTML5.
+	</canvas>
+	<div id="help" style="background-color: white; position: fixed; top 0; right: 0; display: none; padding: 20pt; z-index: 10;">
+	</div>
+</body>
+</html>
