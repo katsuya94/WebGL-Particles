@@ -1,6 +1,7 @@
 <html>
 <head>
 	<script src="vendor/stats.min.js"></script>
+	<script src="vendor/gl-matrix.js"></script>
 	<script src="utilities.js" type="text/javascript"></script>
 
 	<!-- PHYSICS PROGRAM -->
@@ -29,9 +30,10 @@ void main() {
 	int slot = int(mod(gl_FragCoord.x, 2.0));
 	
 	if (slot == 0) {
+		// Copy velocity to position derivative
 		gl_FragColor = vec4(texel(vec2(1.0, 0.0)).xyz, 0.0);
 	} else if (slot == 1) {
-		gl_FragColor = vec4(1.0, 0.0, 0.0, 0.0);
+		gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
 	}
 }
 
@@ -58,9 +60,36 @@ uniform vec2 u_viewport;
 
 uniform float u_dt;
 
+vec4 texel(vec2 offset) {
+	return texture2D(u_state, (gl_FragCoord.xy + offset) / u_viewport);
+}
+
 void main() {
+	int slot = int(mod(gl_FragCoord.x, 2.0));
+
 	vec2 texcoord = gl_FragCoord.xy / u_viewport;
-	gl_FragColor = texture2D(u_state, texcoord) + vec4(u_dt, 0.0, 0.0, 0.0);//u_dt * texture2D(u_dot, texcoord);
+
+	// Euler method
+	vec4 frag = texture2D(u_state, texcoord) + texture2D(u_dot, texcoord);
+
+	// Correction
+	if (slot == 1) {
+		vec4 position = texel(vec2(-1.0, 0.0));
+		if (position.x > 1.0 && frag.x > 0.0)
+			frag.x = -frag.x;
+		if (position.x < -1.0 && frag.x < 0.0)
+			frag.x = -frag.x;
+		if (position.y > 1.0 && frag.y > 0.0)
+			frag.y = -frag.y;
+		if (position.y < -1.0 && frag.y < 0.0)
+			frag.y = -frag.y;
+		if (position.z > 1.0 && frag.z > 0.0)
+			frag.z = -frag.z;
+		if (position.z < -1.0 && frag.z < 0.0)
+			frag.z = -frag.z;
+	}
+
+	gl_FragColor = frag;
 }
 
 	</script>
@@ -72,10 +101,12 @@ attribute vec2 a_reference;
 
 uniform sampler2D u_state;
 
+uniform mat4 u_vp;
+
 void main() {
 	vec4 position = vec4(texture2D(u_state, a_reference).xyz, 1.0);
-	gl_Position = position;
-	gl_PointSize = 10.0;
+	gl_Position = u_vp * position;
+	gl_PointSize = 1.0;
 }
 
 	</script>

@@ -1,8 +1,8 @@
 /* jshint strict: false */
-/* global gl: true, Stats, createProgram */
+/* global gl: true, Stats, createProgram, vec3, mat4 */
 /* exported main */
 
-var NUM_PARTICLES			= Math.pow(2, 2);
+var NUM_PARTICLES			= Math.pow(256, 2);
 var NUM_SLOTS				= 2;
 var PARTICLES_PER_ROW		= Math.sqrt(NUM_PARTICLES);
 var STATE_TEXTURE_WIDTH		= PARTICLES_PER_ROW * NUM_SLOTS;
@@ -45,6 +45,8 @@ function main() {
 	program_calc.u_dot		= gl.getUniformLocation(program_calc, 'u_dot');
 	program_draw.u_state	= gl.getUniformLocation(program_draw, 'u_state');
 
+	program_draw.u_vp		= gl.getUniformLocation(program_draw, 'u_vp');
+
 	gl.useProgram(program_phys);
 	gl.uniform2f(program_phys.u_viewport, STATE_TEXTURE_WIDTH, STATE_TEXTURE_HEIGHT);
 	gl.useProgram(program_calc);
@@ -58,9 +60,23 @@ function main() {
 	var initial_state = new Float32Array(4 * NUM_PARTICLES * NUM_SLOTS);
 
 	for (var i = 0; i < NUM_PARTICLES; i++) {
-		initial_state[i * 8 + 4] = Math.random();
-		initial_state[i * 8 + 5] = Math.random();
+		initial_state[i * 8 + 4] = (Math.random() - 0.5) / 100.0;
+		initial_state[i * 8 + 5] = (Math.random() - 0.5) / 100.0;
+		initial_state[i * 8 + 6] = (Math.random() - 0.5) / 100.0;
 	}
+
+	// Camera
+	var eye = vec3.create();
+	vec3.set(eye, 2.0, 2.0, 2.0);
+	var center = vec3.create();
+	vec3.set(center, 0.0, 0.0, 0.0);
+	var up = vec3.create();
+	vec3.set(up, 0.0, 0.0, 1.0);
+	var projection = mat4.create();
+	mat4.perspective(projection, Math.PI / 3, gl.drawingBufferWidth/gl.drawingBufferHeight, 0.1, 100.0);
+	var view = mat4.create();
+	mat4.lookAt(view, eye, center, up);
+	var vp = mat4.create();
 
 	// Textures
 	var texture_state = gl.createTexture();
@@ -135,9 +151,9 @@ function main() {
 	var last = Date.now();
 
 	var frame = function() {
-		var now = Date.now();
-		var dt = now - last;
-		last = now;
+		var now	= Date.now();
+		var dt	= (now - last) / 1000.0;
+		last 	= now;
 
 		stats.begin();
 
@@ -156,7 +172,7 @@ function main() {
 		gl.bindBuffer(gl.ARRAY_BUFFER, buffer_rectangle);
 		gl.vertexAttribPointer(program_calc.a_rectangle, 2, gl.FLOAT, gl.FALSE, 0, 0);
 
-		gl.uniform1f(program_calc.u_dt, Math.random());
+		gl.uniform1f(program_calc.u_dt, dt);
 
 		gl.bindFramebuffer(gl.FRAMEBUFFER, fb_state);
 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -167,6 +183,11 @@ function main() {
 		gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
 
 		gl.useProgram(program_draw);
+
+		mat4.rotateZ(view, view, dt);
+		mat4.multiply(vp, projection, view);
+		gl.uniformMatrix4fv(program_draw.u_vp, false, vp);
+
 		gl.bindBuffer(gl.ARRAY_BUFFER, buffer_reference);
 		gl.vertexAttribPointer(program_draw.a_reference, 2, gl.FLOAT, gl.FALSE, 0, 0);
 
