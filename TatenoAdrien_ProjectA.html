@@ -21,12 +21,18 @@ uniform sampler2D u_state;
 
 uniform vec2 u_viewport;
 
-vec4 texel(vec2 position) {
-	return texture2D(u_state, position / u_viewport);
+vec4 texel(vec2 offset) {
+	return texture2D(u_state, (gl_FragCoord.xy + offset) / u_viewport);
 }
 
 void main() {
 	int slot = int(mod(gl_FragCoord.x, 2.0));
+	
+	if (slot == 0) {
+		gl_FragColor = vec4(texel(vec2(1.0, 0.0)).xyz, 0.0);
+	} else if (slot == 1) {
+		gl_FragColor = vec4(1.0, 0.0, 0.0, 0.0);
+	}
 }
 
 	</script>
@@ -54,7 +60,7 @@ uniform float u_dt;
 
 void main() {
 	vec2 texcoord = gl_FragCoord.xy / u_viewport;
-	gl_FragColor = texture2D(u_state, texcoord) + u_dt * texture2D(u_dot, texcoord);
+	gl_FragColor = texture2D(u_state, texcoord) + vec4(u_dt, 0.0, 0.0, 0.0);//u_dt * texture2D(u_dot, texcoord);
 }
 
 	</script>
@@ -67,9 +73,9 @@ attribute vec2 a_reference;
 uniform sampler2D u_state;
 
 void main() {
-	vec4 position = texture2D(u_state, a_reference);
+	vec4 position = vec4(texture2D(u_state, a_reference).xyz, 1.0);
 	gl_Position = position;
-	gl_PointSize = 2.0;
+	gl_PointSize = 10.0;
 }
 
 	</script>
@@ -84,7 +90,7 @@ void main() {
 	<script src="main.js"></script>
 </head>
 <body onload="main()">
-	<canvas id="webgl" style="position: absolute; top: 0; left: 0; width: 800px; height: 600px;">
+	<canvas id="webgl" width="800" height="600">
 		Your browser does not support HTML5.
 	</canvas>
 	<div id="help" style="background-color: white; position: fixed; top 0; right: 0; display: none; padding: 20pt; z-index: 10;">

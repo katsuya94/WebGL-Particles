@@ -4,7 +4,7 @@
 
 var NUM_PARTICLES			= Math.pow(2, 2);
 var NUM_SLOTS				= 2;
-var PARTICLES_PER_ROW		= Math.sqrt(NUM_PARTICLES)
+var PARTICLES_PER_ROW		= Math.sqrt(NUM_PARTICLES);
 var STATE_TEXTURE_WIDTH		= PARTICLES_PER_ROW * NUM_SLOTS;
 var STATE_TEXTURE_HEIGHT	= PARTICLES_PER_ROW;
 
@@ -40,6 +40,16 @@ function main() {
 	program_phys.u_viewport	= gl.getUniformLocation(program_phys, 'u_viewport');
 	program_calc.u_viewport	= gl.getUniformLocation(program_calc, 'u_viewport');
 
+	program_phys.u_state	= gl.getUniformLocation(program_phys, 'u_state');
+	program_calc.u_state	= gl.getUniformLocation(program_calc, 'u_state');
+	program_calc.u_dot		= gl.getUniformLocation(program_calc, 'u_dot');
+	program_draw.u_state	= gl.getUniformLocation(program_draw, 'u_state');
+
+	gl.useProgram(program_phys);
+	gl.uniform2f(program_phys.u_viewport, STATE_TEXTURE_WIDTH, STATE_TEXTURE_HEIGHT);
+	gl.useProgram(program_calc);
+	gl.uniform2f(program_calc.u_viewport, STATE_TEXTURE_WIDTH, STATE_TEXTURE_HEIGHT);
+
 	// Attributes
 	program_phys.a_rectangle = gl.getAttribLocation(program_phys, 'a_rectangle');
 	program_calc.a_rectancle = gl.getAttribLocation(program_calc, 'a_rectangle');
@@ -47,12 +57,24 @@ function main() {
 
 	var initial_state = new Float32Array(4 * NUM_PARTICLES * NUM_SLOTS);
 
+	for (var i = 0; i < NUM_PARTICLES; i++) {
+		initial_state[i * 8 + 4] = Math.random();
+		initial_state[i * 8 + 5] = Math.random();
+	}
+
 	// Textures
-	
 	var texture_state = gl.createTexture();
 	gl.activeTexture(gl.TEXTURE0);
 	gl.bindTexture(gl.TEXTURE_2D, texture_state);
+
 	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, STATE_TEXTURE_WIDTH, STATE_TEXTURE_HEIGHT, 0, gl.RGBA, gl.FLOAT, initial_state);
+
+	gl.useProgram(program_phys);
+	gl.uniform1i(program_phys.u_state, 0);
+	gl.useProgram(program_calc);
+	gl.uniform1i(program_calc.u_state, 0);
+	gl.useProgram(program_draw);
+	gl.uniform1i(program_draw.u_state, 0);
 
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
@@ -62,7 +84,11 @@ function main() {
 	var texture_dot = gl.createTexture();
 	gl.activeTexture(gl.TEXTURE1);
 	gl.bindTexture(gl.TEXTURE_2D, texture_dot);
+
 	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, STATE_TEXTURE_WIDTH, STATE_TEXTURE_HEIGHT, 0, gl.RGBA, gl.FLOAT, initial_state);
+
+	gl.useProgram(program_calc);
+	gl.uniform1i(program_calc.u_dot, 1);
 
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
@@ -106,7 +132,13 @@ function main() {
 	gl.useProgram(program_draw);
 	gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
 
+	var last = Date.now();
+
 	var frame = function() {
+		var now = Date.now();
+		var dt = now - last;
+		last = now;
+
 		stats.begin();
 
 		// PHYSICS
@@ -124,6 +156,8 @@ function main() {
 		gl.bindBuffer(gl.ARRAY_BUFFER, buffer_rectangle);
 		gl.vertexAttribPointer(program_calc.a_rectangle, 2, gl.FLOAT, gl.FALSE, 0, 0);
 
+		gl.uniform1f(program_calc.u_dt, Math.random());
+
 		gl.bindFramebuffer(gl.FRAMEBUFFER, fb_state);
 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
@@ -133,6 +167,10 @@ function main() {
 		gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
 
 		gl.useProgram(program_draw);
+		gl.bindBuffer(gl.ARRAY_BUFFER, buffer_reference);
+		gl.vertexAttribPointer(program_draw.a_reference, 2, gl.FLOAT, gl.FALSE, 0, 0);
+
+		gl.drawArrays(gl.POINTS, 0, NUM_PARTICLES);
 
 		stats.end();
 		window.requestAnimationFrame(frame);
