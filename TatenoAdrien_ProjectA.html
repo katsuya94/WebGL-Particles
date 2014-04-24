@@ -126,8 +126,6 @@ void main() {
 	</script>
 	<script id="slvr-fs" type="x-shader/x-vertex">
 
-uniform int u_mode;
-
 uniform sampler2D u_state1;
 uniform sampler2D u_state2;
 uniform sampler2D u_state3;
@@ -136,14 +134,14 @@ uniform sampler2D u_state4;
 uniform vec2 u_viewport;
 
 void main() {
-	vec2 texcoord = gl_FragCoord.xy / u_viewport; 
-	if (u_mode == 0) {
-		// EULER
-		gl_FragColor =  texture2D(u_state1, texcoord);
-	} else {
-		// RUNGE-KUTTA
-		gl_FragColor (texture2D(u_state1, texcoord) + 2.0 * texture2D(u_state2, texcoord) + 2.0 * texture2D(u_state3, texcoord) + texture2D(u_state4, texcoord)) / 6.0;
-	}
+	vec2 texcoord = gl_FragCoord.xy / u_viewport;
+	// RUNGE-KUTTA
+	gl_FragColor = (
+		texture2D(u_state1, texcoord) +
+		2.0 * texture2D(u_state2, texcoord) +
+		2.0 * texture2D(u_state3, texcoord) +
+		texture2D(u_state4, texcoord)
+	) / 6.0;
 }
 
 	</script>
