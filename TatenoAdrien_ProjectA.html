@@ -41,17 +41,17 @@ void main() {
 	} else if (slot == 1) {
 		vec3 position = rel_texel(vec2(-1.0, 0.0)).xyz;
 		vec3 force = vec3(0.0, 0.0, 0.0);
-		for (int i = 0; i < 32; i++) {
-			for (int j = 0; j < 32; j++) {
-				if (i != x && j != y) {
-					vec3 displacement = abs_texel(vec2(float(i * 2), float(j))).xyz - position;
-					float length = length(displacement);
-					length = length > 0.01 ? length : 0.01;
-					force += normalize(displacement) / pow(length, 2.0);
-				}
-			}
-		}
-		gl_FragColor = vec4(0.0000001 * force, 0.0);
+		// for (int i = 0; i < 64; i++) {
+		// 	for (int j = 0; j < 64; j++) {
+		// 		if (i != x && j != y) {
+		// 			vec3 displacement = abs_texel(vec2(float(i * 2), float(j))).xyz - position;
+		// 			float length = length(displacement);
+		// 			force += (length - 0.1) * normalize(displacement);
+		// 		}
+		// 	}
+		// }
+		// gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0) + vec4(0.0000001 * force, 0.0);
+		gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
 	}
 }
 
@@ -91,19 +91,21 @@ void main() {
 	vec4 frag = texture2D(u_state, texcoord) + texture2D(u_dot, texcoord);
 
 	// Correction
-	if (slot == 1) {
+	if (slot == 0) {
+
+	} else {
 		vec3 position = texel(vec2(-1.0, 0.0)).xyz;
 		if (position.x > 1.0 && frag.x > 0.0)
 			frag.x = -frag.x;
-		if (position.x < -1.0 && frag.x < 0.0)
+		else if (position.x < -1.0 && frag.x < 0.0)
 			frag.x = -frag.x;
 		if (position.y > 1.0 && frag.y > 0.0)
 			frag.y = -frag.y;
-		if (position.y < -1.0 && frag.y < 0.0)
+		else if (position.y < -1.0 && frag.y < 0.0)
 			frag.y = -frag.y;
 		if (position.z > 1.0 && frag.z > 0.0)
 			frag.z = -frag.z;
-		if (position.z < -1.0 && frag.z < 0.0)
+		else if (position.z < -1.0 && frag.z < 0.0)
 			frag.z = -frag.z;
 	}
 

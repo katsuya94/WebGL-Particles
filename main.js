@@ -2,7 +2,7 @@
 /* global gl: true, Stats, createProgram, vec3, mat4 */
 /* exported main */
 
-var NUM_PARTICLES			= Math.pow(32, 2);
+var NUM_PARTICLES			= Math.pow(64, 2);
 var NUM_SLOTS				= 2;
 var PARTICLES_PER_ROW		= Math.sqrt(NUM_PARTICLES);
 var STATE_TEXTURE_WIDTH		= PARTICLES_PER_ROW * NUM_SLOTS;
@@ -63,6 +63,9 @@ function main() {
 		initial_state[i * 8 + 0] = (Math.random() - 0.5) * 2.0;
 		initial_state[i * 8 + 1] = (Math.random() - 0.5) * 2.0;
 		initial_state[i * 8 + 2] = (Math.random() - 0.5) * 2.0;
+		initial_state[i * 8 + 4] = (Math.random() - 0.5) * 0.01;
+		initial_state[i * 8 + 5] = (Math.random() - 0.5) * 0.01;
+		initial_state[i * 8 + 6] = (Math.random() - 0.5) * 0.01;
 	}
 
 	// Camera
