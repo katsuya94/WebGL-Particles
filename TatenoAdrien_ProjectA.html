@@ -143,12 +143,12 @@ uniform vec2 u_viewport;
 void main() {
 	vec2 texcoord = gl_FragCoord.xy / u_viewport;
 	// RUNGE-KUTTA
-	gl_FragColor = (
+	gl_FragColor = 0.1 * (
 		texture2D(u_dot1, texcoord) +
 		2.0 * texture2D(u_dot2, texcoord) +
 		2.0 * texture2D(u_dot3, texcoord) +
 		texture2D(u_dot4, texcoord)
-	) / 6.0;
+	);
 }
 
 	</script>

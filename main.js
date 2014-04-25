@@ -2,7 +2,7 @@
 /* global gl: true, Stats, createProgram, vec3, mat4 */
 /* exported main */
 
-var NUM_PARTICLES			= Math.pow(64, 2);
+var NUM_PARTICLES			= Math.pow(128, 2);
 var NUM_SLOTS				= 2;
 var PARTICLES_PER_ROW		= Math.sqrt(NUM_PARTICLES);
 var STATE_TEXTURE_WIDTH		= PARTICLES_PER_ROW * NUM_SLOTS;
@@ -61,6 +61,8 @@ function main() {
 	gl.uniform2f(program_phys.u_viewport, STATE_TEXTURE_WIDTH, STATE_TEXTURE_HEIGHT);
 	gl.useProgram(program_calc);
 	gl.uniform2f(program_calc.u_viewport, STATE_TEXTURE_WIDTH, STATE_TEXTURE_HEIGHT);
+	gl.useProgram(program_slvr);
+	gl.uniform2f(program_slvr.u_viewport, STATE_TEXTURE_WIDTH, STATE_TEXTURE_HEIGHT);
 
 	// Attributes
 	program_phys.a_rectangle = gl.getAttribLocation(program_phys, 'a_rectangle');
@@ -71,9 +73,9 @@ function main() {
 	var initial_state = new Float32Array(4 * NUM_PARTICLES * NUM_SLOTS);
 
 	for (var i = 0; i < NUM_PARTICLES; i++) {
-		initial_state[i * 8 + 0] = (Math.random() - 0.5) * 2.0;
-		initial_state[i * 8 + 1] = (Math.random() - 0.5) * 2.0;
-		initial_state[i * 8 + 2] = (Math.random() - 0.5) * 2.0;
+		initial_state[i * 8 + 0] = (Math.random() - 0.5) * 1.0;
+		initial_state[i * 8 + 1] = (Math.random() - 0.5) * 1.0;
+		initial_state[i * 8 + 2] = (Math.random() - 0.5) * 1.0;
 		initial_state[i * 8 + 4] = (Math.random() - 0.5);
 		initial_state[i * 8 + 5] = (Math.random() - 0.5);
 		initial_state[i * 8 + 6] = (Math.random() - 0.5);
@@ -232,7 +234,7 @@ function main() {
 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 	}
 
-	var mode = 1;
+	var mode = 0;
 
 	var last = Date.now();
 
@@ -250,7 +252,7 @@ function main() {
 			solve(1, fb_dot1, 0.0);
 		} else {
 			//RUNGE KUTTA
-			solve(1, fb_dot1, 0.0);
+			solve(0, fb_dot1, 0.0);
 			solve(1, fb_dot2, dt / 2.0);
 			solve(2, fb_dot3, dt / 2.0);
 			solve(3, fb_dot4, dt);
