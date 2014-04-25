@@ -222,7 +222,6 @@ function main() {
 	gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
 
 	var solve = function(source_dot_id, target_dot, dt) {
-		gl.useProgram(program_phys);
 		gl.uniform1i(program_phys.u_dot, source_dot_id);
 		gl.uniform1f(program_phys.u_dt, dt);
 
@@ -246,6 +245,8 @@ function main() {
 		stats.begin();
 
 		gl.viewport(0, 0, STATE_TEXTURE_WIDTH, STATE_TEXTURE_HEIGHT);
+
+		gl.useProgram(program_phys);
 
 		if (mode === 0) {
 			//EULER
