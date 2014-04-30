@@ -37,6 +37,9 @@ function main() {
 	var program_draw = createProgram(
 		document.getElementById('draw-vs').text,
 		document.getElementById('draw-fs').text);
+	var program_stat = createProgram(
+		document.getElementById('stat-vs').text,
+		document.getElementById('stat-fs').text);
 
 	// Uniforms
 	program_phys.u_dt		= gl.getUniformLocation(program_phys, 'u_dt');
@@ -56,6 +59,7 @@ function main() {
 	program_slvr.u_dot4		= gl.getUniformLocation(program_slvr, 'u_dot4');
 
 	program_draw.u_vp		= gl.getUniformLocation(program_draw, 'u_vp');
+	program_stat.u_vp		= gl.getUniformLocation(program_stat, 'u_vp');
 
 	gl.useProgram(program_phys);
 	gl.uniform2f(program_phys.u_viewport, STATE_TEXTURE_WIDTH, STATE_TEXTURE_HEIGHT);
@@ -69,6 +73,8 @@ function main() {
 	program_calc.a_rectancle = gl.getAttribLocation(program_calc, 'a_rectangle');
 	program_slvr.a_rectancle = gl.getAttribLocation(program_slvr, 'a_rectangle');
 	program_draw.a_reference = gl.getAttribLocation(program_draw, 'a_reference');
+	program_stat.a_position = gl.getAttribLocation(program_stat, 'a_position');
+	program_stat.a_color = gl.getAttribLocation(program_stat, 'a_color');
 
 	var initial_state = new Float32Array(4 * NUM_PARTICLES * NUM_SLOTS);
 
@@ -87,11 +93,15 @@ function main() {
 	var projection = mat4.create();
 	mat4.perspective(projection, Math.PI / 3, gl.drawingBufferWidth/gl.drawingBufferHeight, 0.1, 100.0);
 
-	var rotate = quat.create();
-	var altitude = quat.create();
-	var direction = quat.create();
+	var rotate = mat4.create();
+	var altitude = mat4.create();
+	var direction = mat4.create();
 
+	var correction = mat4.create();
+	var upward = vec3.create();
+	vec3.set(upward, 0.0, 0.0, 1.0);
 	var front = vec3.create();
+	var right = vec3.create();
 
 	var position = vec3.create();
 	vec3.set(position, -2.0, -2.0, -2.0);
@@ -142,6 +152,22 @@ function main() {
 	}
 
 	// Static Stuff
+	values = new Float32Array([
+		0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+		0.5, 0.0, 0.0, 1.0, 0.0, 0.0,
+		0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+		0.0, 0.5, 0.0, 0.0, 1.0, 0.0,
+		0.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+		0.0, 0.0, 0.5, 0.0, 0.0, 1.0,
+	]);
+	FSIZE = values.BYTES_PER_ELEMENT
+	var buffer_static = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, buffer_static);
+	gl.bufferData(gl.ARRAY_BUFFER, values, gl.STATIC_DRAW);
+	gl.vertexAttribPointer(program_stat.a_position, 3, gl.FLOAT, gl.FALSE, 6 * FSIZE, 0 * FSIZE);
+	gl.enableVertexAttribArray(program_stat.a_position);
+	gl.vertexAttribPointer(program_stat.a_color, 3, gl.FLOAT, gl.FALSE, 6 * FSIZE, 3 * FSIZE);
+	gl.enableVertexAttribArray(program_stat.a_color);
 
 	// Textures
 	var texture_state = gl.createTexture();
@@ -274,10 +300,6 @@ function main() {
 		gl.uniform1i(program_phys.u_dot, source_dot_id);
 		gl.uniform1f(program_phys.u_dt, dt);
 
-		// PHYSICS
-		gl.bindBuffer(gl.ARRAY_BUFFER, buffer_rectangle);
-		gl.vertexAttribPointer(program_phys.a_rectangle, 2, gl.FLOAT, gl.FALSE, 0, 0);
-
 		gl.bindFramebuffer(gl.FRAMEBUFFER, target_dot);
 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 	}
@@ -296,6 +318,10 @@ function main() {
 		gl.viewport(0, 0, STATE_TEXTURE_WIDTH, STATE_TEXTURE_HEIGHT);
 
 		gl.useProgram(program_phys);
+
+		// PHYSICS
+		gl.bindBuffer(gl.ARRAY_BUFFER, buffer_rectangle);
+		gl.vertexAttribPointer(program_phys.a_rectangle, 2, gl.FLOAT, gl.FALSE, 0, 0);
 
 		if (mode === 0) {
 			//EULER
@@ -331,22 +357,29 @@ function main() {
 		gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
 		gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
 
-		quat.rotateZ(rotate, rotate, dt * ((dirpad[0] ? 1 : 0) + (dirpad[2] ? -1 : 0)));
-		quat.rotateX(altitude, altitude, dt * ((dirpad[1] ? -1 : 0) + (dirpad[3] ? 1 : 0)));
-		quat.multiply(direction, altitude, rotate);
+		mat4.rotateZ(rotate, rotate, dt * ((dirpad[0] ? 1 : 0) + (dirpad[2] ? -1 : 0)));
+		mat4.rotateX(altitude, altitude, dt * ((dirpad[1] ? -1 : 0) + (dirpad[3] ? 1 : 0)));
+		mat4.multiply(view, altitude, rotate);
 
-		vec3.set(front, 0.0, 1.0, 0.0);
-		vec3.transformQuat(front, front, direction);
+		mat4.adjoint(correction, view);
+
+		vec3.set(front, 0.0, 0.0, 1.0);
+		vec3.transformMat4(front, front, correction);
+		vec3.normalize(front, front)
+		vec3.copy(right, front);
 		vec3.scale(front, front, dt * ((wasd[1] ? 1 : 0) + (wasd[3] ? -1 : 0)));
-		vec3.add(position, position, front)
+		vec3.add(position, position, front);
 
-		mat4.fromQuat(view, direction);
+		vec3.cross(right, right, upward);
+		vec3.scale(right, right, dt * ((wasd[0] ? 1 : 0) + (wasd[2] ? -1 : 0)));
+		vec3.add(position, position, right);
+
 		mat4.translate(view, view, position);
 
 		mat4.multiply(vp, projection, view);
 
 		gl.useProgram(program_draw);
-		gl.uniformMatrix4fv(program_draw.u_vp, false, vp);
+		gl.uniformMatrix4fv(program_draw.u_vp, gl.FALSE, vp);
 
 		gl.bindBuffer(gl.ARRAY_BUFFER, buffer_reference);
 		gl.vertexAttribPointer(program_draw.a_reference, 2, gl.FLOAT, gl.FALSE, 0, 0);
@@ -354,7 +387,7 @@ function main() {
 		gl.drawArrays(gl.POINTS, 0, NUM_PARTICLES);
 
 		gl.useProgram(program_stat);
-		gl.uniformMatrix4fv(program_stat.u_vp, false, vp);
+		gl.uniformMatrix4fv(program_stat.u_vp, gl.FALSE, vp);
 
 		gl.drawArrays(gl.LINES, 0, 6);
 

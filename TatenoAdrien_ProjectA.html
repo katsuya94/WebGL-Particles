@@ -44,18 +44,6 @@ void main() {
 		// Copy velocity to position derivative
 		gl_FragColor = vec4(rel_texel(vec2(1.0, 0.0)).xyz, 0.0);
 	} else if (slot == 1) {
-		// vec3 position = rel_texel(vec2(-1.0, 0.0)).xyz;
-		// vec3 force = vec3(0.0, 0.0, 0.0);
-		// for (int i = 0; i < 64; i++) {
-		// 	for (int j = 0; j < 64; j++) {
-		// 		if (i != x && j != y) {
-		// 			vec3 displacement = abs_texel(vec2(float(i * 2), float(j))).xyz - position;
-		// 			float length = length(displacement);
-		// 			force += (length - 0.1) * normalize(displacement);
-		// 		}
-		// 	}
-		// }
-		// gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0) + vec4(0.0000001 * force, 0.0);
 		gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
 	}
 }
@@ -172,6 +160,34 @@ void main() {
 
 void main() {
 	gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);	
+}
+
+	</script>
+
+	<!-- STATIC PROGRAM -->
+	<script id="stat-vs" type="x-shader/x-fragment">
+
+attribute vec4 a_position;
+attribute vec4 a_color;
+
+uniform mat4 u_vp;
+
+varying vec4 v_color;
+
+void main() {
+	v_color = vec4(1.0, 0.0, 0.0, 1.0);
+	gl_Position = u_vp * a_position;
+}
+
+	</script>
+	<script id="stat-fs" type="x-shader/x-vertex">
+
+precision mediump float;
+
+varying vec4 v_color;
+
+void main() {
+	gl_FragColor = v_color;	
 }
 
 	</script>
