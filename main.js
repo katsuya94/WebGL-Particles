@@ -74,7 +74,7 @@ function main() {
 	program_slvr.a_rectancle = gl.getAttribLocation(program_slvr, 'a_rectangle');
 	program_draw.a_reference = gl.getAttribLocation(program_draw, 'a_reference');
 	program_stat.a_position = gl.getAttribLocation(program_stat, 'a_position');
-	program_stat.a_color = gl.getAttribLocation(program_stat, 'a_color');
+	program_stat.a_vertcolor = gl.getAttribLocation(program_stat, 'a_vertcolor');
 
 	var initial_state = new Float32Array(4 * NUM_PARTICLES * NUM_SLOTS);
 
@@ -96,6 +96,7 @@ function main() {
 	var rotate = mat4.create();
 	var altitude = mat4.create();
 	var direction = mat4.create();
+	mat4.rotateX(altitude, altitude, Math.PI);
 
 	var correction = mat4.create();
 	var upward = vec3.create();
@@ -104,7 +105,7 @@ function main() {
 	var right = vec3.create();
 
 	var position = vec3.create();
-	vec3.set(position, -2.0, -2.0, -2.0);
+	vec3.set(position, 2.0, 2.0, 2.0);
 
 	var vp = mat4.create();
 
@@ -164,10 +165,10 @@ function main() {
 	var buffer_static = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, buffer_static);
 	gl.bufferData(gl.ARRAY_BUFFER, values, gl.STATIC_DRAW);
-	gl.vertexAttribPointer(program_stat.a_position, 3, gl.FLOAT, gl.FALSE, 6 * FSIZE, 0 * FSIZE);
+	gl.vertexAttribPointer(program_stat.a_position, 3, gl.FLOAT, false, 6 * FSIZE, 0 * FSIZE);
+	gl.vertexAttribPointer(program_stat.a_vertcolor, 3, gl.FLOAT, false, 6 * FSIZE, 3 * FSIZE);
 	gl.enableVertexAttribArray(program_stat.a_position);
-	gl.vertexAttribPointer(program_stat.a_color, 3, gl.FLOAT, gl.FALSE, 6 * FSIZE, 3 * FSIZE);
-	gl.enableVertexAttribArray(program_stat.a_color);
+	gl.enableVertexAttribArray(program_stat.a_vertcolor);
 
 	// Textures
 	var texture_state = gl.createTexture();
@@ -321,7 +322,7 @@ function main() {
 
 		// PHYSICS
 		gl.bindBuffer(gl.ARRAY_BUFFER, buffer_rectangle);
-		gl.vertexAttribPointer(program_phys.a_rectangle, 2, gl.FLOAT, gl.FALSE, 0, 0);
+		gl.vertexAttribPointer(program_phys.a_rectangle, 2, gl.FLOAT, false, 0, 0);
 
 		if (mode === 0) {
 			//EULER
@@ -336,7 +337,7 @@ function main() {
 			gl.useProgram(program_slvr);
 
 			gl.bindBuffer(gl.ARRAY_BUFFER, buffer_rectangle);
-			gl.vertexAttribPointer(program_slvr.a_rectangle, 2, gl.FLOAT, gl.FALSE, 0, 0);
+			gl.vertexAttribPointer(program_slvr.a_rectangle, 2, gl.FLOAT, false, 0, 0);
 
 			gl.bindFramebuffer(gl.FRAMEBUFFER, fb_dot1);
 			gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -345,7 +346,7 @@ function main() {
 		// CALCULATION
 		gl.useProgram(program_calc);
 		gl.bindBuffer(gl.ARRAY_BUFFER, buffer_rectangle);
-		gl.vertexAttribPointer(program_calc.a_rectangle, 2, gl.FLOAT, gl.FALSE, 0, 0);
+		gl.vertexAttribPointer(program_calc.a_rectangle, 2, gl.FLOAT, false, 0, 0);
 
 		gl.uniform1f(program_calc.u_dt, dt);
 
@@ -357,37 +358,37 @@ function main() {
 		gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
 		gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
 
-		mat4.rotateZ(rotate, rotate, dt * ((dirpad[0] ? 1 : 0) + (dirpad[2] ? -1 : 0)));
+		mat4.rotateZ(rotate, rotate, dt * ((dirpad[0] ? -1 : 0) + (dirpad[2] ? 1 : 0)));
 		mat4.rotateX(altitude, altitude, dt * ((dirpad[1] ? -1 : 0) + (dirpad[3] ? 1 : 0)));
 		mat4.multiply(view, altitude, rotate);
-
 		mat4.adjoint(correction, view);
-
 		vec3.set(front, 0.0, 0.0, 1.0);
 		vec3.transformMat4(front, front, correction);
 		vec3.normalize(front, front)
 		vec3.copy(right, front);
-		vec3.scale(front, front, dt * ((wasd[1] ? 1 : 0) + (wasd[3] ? -1 : 0)));
+		vec3.scale(front, front, dt * ((wasd[1] ? 1 : 0) + (wasd[3] ? -1 : 0)) * 2.0);
 		vec3.add(position, position, front);
-
 		vec3.cross(right, right, upward);
-		vec3.scale(right, right, dt * ((wasd[0] ? 1 : 0) + (wasd[2] ? -1 : 0)));
+		vec3.scale(right, right, dt * ((wasd[0] ? -1 : 0) + (wasd[2] ? 1 : 0)) * 2.0);
 		vec3.add(position, position, right);
-
 		mat4.translate(view, view, position);
-
 		mat4.multiply(vp, projection, view);
 
 		gl.useProgram(program_draw);
-		gl.uniformMatrix4fv(program_draw.u_vp, gl.FALSE, vp);
+		gl.uniformMatrix4fv(program_draw.u_vp, false, vp);
 
 		gl.bindBuffer(gl.ARRAY_BUFFER, buffer_reference);
-		gl.vertexAttribPointer(program_draw.a_reference, 2, gl.FLOAT, gl.FALSE, 0, 0);
+		gl.vertexAttribPointer(program_draw.a_reference, 2, gl.FLOAT, false, 0, 0);
 
 		gl.drawArrays(gl.POINTS, 0, NUM_PARTICLES);
 
 		gl.useProgram(program_stat);
-		gl.uniformMatrix4fv(program_stat.u_vp, gl.FALSE, vp);
+
+		gl.bindBuffer(gl.ARRAY_BUFFER, buffer_static);
+		gl.vertexAttribPointer(program_stat.a_position, 3, gl.FLOAT, false, 6 * FSIZE, 0 * FSIZE);
+		gl.vertexAttribPointer(program_stat.a_vertcolor, 3, gl.FLOAT, false, 6 * FSIZE, 3 * FSIZE);
+
+		gl.uniformMatrix4fv(program_stat.u_vp, false, vp);
 
 		gl.drawArrays(gl.LINES, 0, 6);
 
