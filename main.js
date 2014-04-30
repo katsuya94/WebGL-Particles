@@ -82,17 +82,66 @@ function main() {
 	}
 
 	// Camera
-	var eye = vec3.create();
-	vec3.set(eye, 2.0, 2.0, 2.0);
-	var center = vec3.create();
-	vec3.set(center, 0.0, 0.0, 0.0);
-	var up = vec3.create();
-	vec3.set(up, 0.0, 0.0, 1.0);
+	var view = mat4.create();
+
 	var projection = mat4.create();
 	mat4.perspective(projection, Math.PI / 3, gl.drawingBufferWidth/gl.drawingBufferHeight, 0.1, 100.0);
-	var view = mat4.create();
-	mat4.lookAt(view, eye, center, up);
+
+	var rotate = quat.create();
+	var altitude = quat.create();
+	var direction = quat.create();
+
+	var front = vec3.create();
+
+	var position = vec3.create();
+	vec3.set(position, -2.0, -2.0, -2.0);
+
 	var vp = mat4.create();
+
+	dirpad = [false, false, false, false];
+	wasd = [false, false, false, false];
+
+	window.onkeydown = function(e) {
+		var key = e.keyCode ? e.keyCode : e.which;
+		if (key === 37)
+			dirpad[0] = true;
+		if (key === 38)
+			dirpad[1] = true;
+		if (key === 39)
+			dirpad[2] = true;
+		if (key === 40)
+			dirpad[3] = true;
+		if (key === 65)
+			wasd[0] = true;
+		if (key === 87)
+			wasd[1] = true;
+		if (key === 68)
+			wasd[2] = true;
+		if (key === 83)
+			wasd[3] = true;
+	}
+
+	window.onkeyup = function(e) {
+		var key = e.keyCode ? e.keyCode : e.which;
+		if (key === 37)
+			dirpad[0] = false;
+		if (key === 38)
+			dirpad[1] = false;
+		if (key === 39)
+			dirpad[2] = false;
+		if (key === 40)
+			dirpad[3] = false;
+		if (key === 65)
+			wasd[0] = false;
+		if (key === 87)
+			wasd[1] = false;
+		if (key === 68)
+			wasd[2] = false;
+		if (key === 83)
+			wasd[3] = false;
+	}
+
+	// Static Stuff
 
 	// Textures
 	var texture_state = gl.createTexture();
@@ -164,7 +213,7 @@ function main() {
 	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, STATE_TEXTURE_WIDTH, STATE_TEXTURE_HEIGHT, 0, gl.RGBA, gl.FLOAT, initial_state);
 
 	gl.useProgram(program_slvr);
-	gl.uniform1i(program_calc.u_dot4, 4);
+	gl.uniform1i(program_slvr.u_dot4, 4);
 
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
@@ -233,7 +282,7 @@ function main() {
 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 	}
 
-	var mode = 0;
+	var mode = 1;
 
 	var last = Date.now();
 
@@ -282,16 +331,32 @@ function main() {
 		gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
 		gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
 
-		gl.useProgram(program_draw);
+		quat.rotateZ(rotate, rotate, dt * ((dirpad[0] ? 1 : 0) + (dirpad[2] ? -1 : 0)));
+		quat.rotateX(altitude, altitude, dt * ((dirpad[1] ? -1 : 0) + (dirpad[3] ? 1 : 0)));
+		quat.multiply(direction, altitude, rotate);
 
-		mat4.rotateZ(view, view, dt);
+		vec3.set(front, 0.0, 1.0, 0.0);
+		vec3.transformQuat(front, front, direction);
+		vec3.scale(front, front, dt * ((wasd[1] ? 1 : 0) + (wasd[3] ? -1 : 0)));
+		vec3.add(position, position, front)
+
+		mat4.fromQuat(view, direction);
+		mat4.translate(view, view, position);
+
 		mat4.multiply(vp, projection, view);
+
+		gl.useProgram(program_draw);
 		gl.uniformMatrix4fv(program_draw.u_vp, false, vp);
 
 		gl.bindBuffer(gl.ARRAY_BUFFER, buffer_reference);
 		gl.vertexAttribPointer(program_draw.a_reference, 2, gl.FLOAT, gl.FALSE, 0, 0);
 
 		gl.drawArrays(gl.POINTS, 0, NUM_PARTICLES);
+
+		gl.useProgram(program_stat);
+		gl.uniformMatrix4fv(program_stat.u_vp, false, vp);
+
+		gl.drawArrays(gl.LINES, 0, 6);
 
 		stats.end();
 		window.requestAnimationFrame(frame);

@@ -97,18 +97,6 @@ void main() {
 
 	// Correction
 	if (slot == 0) {
-		if (frag.x > 1.01)
-			frag.x = 1.01;
-		else if (frag.x < -1.01)
-			frag.x = -1.01;
-		else if (frag.y > 1.01)
-			frag.y = 1.01;
-		else if (frag.y < -1.01)
-			frag.y = -1.01;
-		else if (frag.z > 1.01)
-			frag.z = 1.01;
-		else if (frag.z < -1.01)
-			frag.z = -1.01;
 	} else {
 		vec3 position = texel(vec2(-1.0, 0.0)).xyz;
 		if (position.x > 1.0 && frag.x > 0.0)
@@ -176,7 +164,7 @@ uniform mat4 u_vp;
 void main() {
 	vec4 position = vec4(texture2D(u_state, a_reference).xyz, 1.0);
 	gl_Position = u_vp * position;
-	gl_PointSize = 2.0;
+	gl_PointSize = 1.0;
 }
 
 	</script>
